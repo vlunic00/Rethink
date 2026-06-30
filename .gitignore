@@ -1,0 +1,4 @@
+RETHINK_SPEC.md
+gemini-code-*.md
+__pycache__/
+*.py[cod]

@@ -1,0 +1,10 @@
+{
+  "name": "rethink",
+  "version": "0.1.0",
+  "description": "Reroute stuck AI conversations by identifying the failed approach and forcing a fresh alternative path.",
+  "author": {
+    "name": "Rethink contributors"
+  },
+  "license": "MIT",
+  "skills": "./skills/"
+}

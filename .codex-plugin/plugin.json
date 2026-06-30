@@ -1,0 +1,32 @@
+{
+  "name": "rethink",
+  "version": "0.1.0",
+  "description": "Reroute stuck AI conversations by identifying the failed approach and forcing a fresh alternative path.",
+  "author": {
+    "name": "Rethink contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "rethink",
+    "backtracking",
+    "self-correction",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rethink",
+    "shortDescription": "Backtrack stuck AI work",
+    "longDescription": "Identify where a conversation derailed, ban the failed approach, and continue from a cleaner branch.",
+    "developerName": "Rethink contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions",
+      "Python engine"
+    ],
+    "defaultPrompt": [
+      "/rethink",
+      "Rethink this stuck approach.",
+      "Find a fresh path forward."
+    ]
+  }
+}
