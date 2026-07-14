@@ -1,51 +1,72 @@
 # Rethink
 
-`/rethink` helps an agent recover when a long conversation gets stuck optimizing the wrong approach.
+Rethink helps an agent recover when a long conversation gets stuck optimizing the wrong approach.
 
 It works in two layers:
 
-- As a Codex/Claude skill, `/rethink`, "rethink this", or "we're stuck" tells the agent to stop repeating the failed path and continue with a structurally different solution.
-- As a Python engine, `skills/rethink/rethink_engine.py` can be used by hosts that can pass a real chat-history array, prune it, append the negative constraint, and run fresh inference.
+- As a skill, it tells the agent to preserve the objective and valid constraints while continuing with a structurally different solution.
+- As an optional Python engine, it can analyze a text chat history, build a replacement branch, and generate a fresh response.
 
-## Current limitation
+## Invoke the skill
 
-Skill-triggered behavior cannot surgically mutate a host's hidden active context by itself. True time-travel backtracking requires a host integration that calls `execute_rethink_command(chat_history)` and replaces the active message payload with the returned branch.
+In Codex, explicitly invoke the skill with `$rethink` or select it through `/skills`. Phrases such as "rethink this" or "we're stuck" can also trigger it implicitly.
 
-## Requirements
+Hosts that expose skills as slash commands may use `/rethink` instead.
 
-The Python engine uses the OpenAI Python SDK and reads `OPENAI_API_KEY` from the environment unless a compatible client is passed in.
+Skill-triggered behavior cannot replace a host's hidden active context. A host that supports real history replacement must call `build_rethink_branch(chat_history)` and install the returned message list itself.
+
+## Install
+
+For local Codex skill development, copy `skills/rethink` to `$HOME/.agents/skills/rethink`, then restart Codex if it does not appear automatically.
+
+For plugin distribution, add the repository to a Codex plugin marketplace and install `rethink` from that marketplace. The Codex manifest is `.codex-plugin/plugin.json`; compatible Claude plugin hosts can use `.claude-plugin/plugin.json`.
+
+## Python engine
+
+The skill itself has no Python dependency. The optional engine requires the OpenAI Python SDK:
+
+```powershell
+python -m pip install openai
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+`chat_history` must be a non-empty list containing at least one user message. Supported roles are `system`, `user`, and `assistant`, and every `content` value must be a string. Tool calls, tool results, and multimodal content are intentionally unsupported.
 
 ```python
-from skills.rethink.rethink_engine import execute_rethink_command
+from rethink import build_rethink_branch, execute_rethink_command
 
+chat_history = [
+    {"role": "user", "content": "Build the thing."},
+    {"role": "assistant", "content": "Attempt one..."},
+]
+
+# Use this when the host owns inference and can replace its active history.
+replacement_history = build_rethink_branch(chat_history)
+
+# Use this when only the new assistant response is needed.
 response = execute_rethink_command(chat_history)
 ```
 
-`chat_history` must be a non-empty list of message dictionaries:
+The defaults are `gpt-5.6-luna` for analysis and `gpt-5.6` for generation. Compatible clients and model overrides can be passed explicitly:
 
 ```python
-[
-    {"role": "user", "content": "Build the thing."},
-    {"role": "assistant", "content": "Attempt one..."}
-]
+response = execute_rethink_command(
+    chat_history,
+    client=my_client,
+    critic_model="gpt-5.6-luna",
+    generation_model="gpt-5.6",
+)
 ```
 
-## Installation
+## Validate
 
-For Codex, install this repository as a local plugin. The Codex manifest lives at `.codex-plugin/plugin.json`.
-
-For Claude-compatible plugin hosts, use `.claude-plugin/plugin.json`.
-
-After installation, start a new chat and invoke:
-
-```text
-/rethink
-```
-
-## Validation
+The bundled check uses a fake client and does not require the SDK, an API key, or network access:
 
 ```powershell
-python C:/Users/vedro/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
-python C:/Users/vedro/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/rethink
 python skills/rethink/rethink_engine.py
+python -m compileall -q .
+python -m json.tool .codex-plugin/plugin.json *> $null
+python -m json.tool .claude-plugin/plugin.json *> $null
 ```
+
+Run a separate API smoke test before changing models or request parameters.
